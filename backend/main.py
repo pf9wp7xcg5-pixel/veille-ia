@@ -2,13 +2,14 @@ import feedparser
 import httpx
 import asyncio
 import time
-import json
 import re
+import os
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 app = FastAPI(title="Veille IA API")
 
@@ -34,8 +35,7 @@ SOURCES = [
 ]
 
 # ── Cache ──────────────────────────────────────────────────────────────────────
-_cache: dict = {"articles": [], "summaries": {}, "ts": 0}
-CACHE_TTL = 3600  # 1 heure
+_cache: dict = {"articles": [], "ts": 0}
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -150,9 +150,26 @@ import os
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 
+scheduler = AsyncIOScheduler()
+
 @app.on_event("startup")
 async def startup():
+    # Chargement initial au démarrage
     await refresh_cache(GROQ_API_KEY)
+    # Scheduler : tous les jours à 20h UTC = 7h heure de Nouméa (GMT+11)
+    scheduler.add_job(
+        refresh_cache,
+        CronTrigger(hour=20, minute=0, timezone="UTC"),
+        args=[GROQ_API_KEY],
+        id="daily_refresh",
+        replace_existing=True,
+    )
+    scheduler.start()
+    print("[scheduler] Refresh programmé chaque jour à 20h UTC (7h Nouméa)")
+
+@app.on_event("shutdown")
+async def shutdown():
+    scheduler.shutdown()
 
 
 @app.get("/api/feed")
@@ -162,8 +179,6 @@ async def get_feed(
     limit: int = Query(50, le=200),
 ):
     # Refresh si cache expiré
-    if time.time() - _cache["ts"] > CACHE_TTL:
-        asyncio.create_task(refresh_cache(GROQ_API_KEY))
 
     articles = _cache["articles"]
 
