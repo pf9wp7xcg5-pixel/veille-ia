@@ -246,57 +246,6 @@ main {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-
-/* ── Modal ── */
-.modal-overlay {
-  position: fixed; inset: 0; z-index: 200;
-  background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(6px);
-  display: flex; align-items: flex-start; justify-content: center;
-  padding: 2rem 1rem;
-  overflow-y: auto;
-  opacity: 0; pointer-events: none;
-  transition: opacity .2s;
-}
-.modal-overlay.open { opacity: 1; pointer-events: all; }
-.modal {
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: 10px;
-  width: 100%; max-width: 760px;
-  padding: 2rem 2.25rem;
-  position: relative;
-  transform: translateY(16px);
-  transition: transform .25s;
-}
-.modal-overlay.open .modal { transform: translateY(0); }
-.modal-header { margin-bottom: 1.5rem; }
-.modal-source-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.modal-tag { font-family: var(--mono); font-size: 10px; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; font-weight: 700; }
-.modal-source { font-family: var(--mono); font-size: 11px; color: var(--muted); }
-.modal-title { font-size: 20px; font-weight: 500; line-height: 1.35; color: var(--text); letter-spacing: -0.02em; margin-bottom: 1rem; }
-.modal-actions { display: flex; align-items: center; gap: 12px; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
-.modal-orig-link {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-family: var(--mono); font-size: 11px;
-  color: var(--muted); text-decoration: none;
-  border: 1px solid var(--border2); border-radius: 5px;
-  padding: 5px 12px; transition: all .15s;
-}
-.modal-orig-link:hover { color: var(--accent); border-color: var(--accent); }
-.modal-orig-link svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
-.modal-cached { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-left: auto; }
-.modal-body { margin-top: 1.25rem; font-size: 15px; line-height: 1.75; color: #c8c6c0; }
-.modal-body p { margin-bottom: 1em; }
-.modal-body ul, .modal-body ol { margin: 0.5em 0 1em 1.5em; }
-.modal-body li { margin-bottom: 0.3em; }
-.modal-loader { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 3rem 0; font-family: var(--mono); font-size: 12px; color: var(--muted); }
-.modal-loader-bar { width: 200px; height: 2px; background: var(--border2); border-radius: 2px; overflow: hidden; }
-.modal-loader-bar::after { content: ''; display: block; height: 100%; width: 40%; background: var(--accent); animation: slide 1.2s ease-in-out infinite; }
-@keyframes slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
-.modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: 1px solid var(--border2); border-radius: 5px; color: var(--muted); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; transition: all .15s; }
-.modal-close:hover { border-color: var(--danger); color: var(--danger); }
-.card { cursor: pointer; }
 </style>
 </head>
 <body>
@@ -331,37 +280,9 @@ main {
 
 <main id="grid"></main>
 
-
-<!-- ── Modal article ── -->
-<div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title-text">
-  <div class="modal">
-    <button class="modal-close" id="modal-close" aria-label="Fermer">✕</button>
-    <div class="modal-header">
-      <div class="modal-source-row">
-        <span class="modal-tag tag-pill" id="modal-tag"></span>
-        <span class="modal-source" id="modal-source"></span>
-      </div>
-      <h2 class="modal-title" id="modal-title-text"></h2>
-      <div class="modal-actions">
-        <a class="modal-orig-link" id="modal-orig-link" href="#" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          Voir l'article original
-        </a>
-        <span class="modal-cached" id="modal-cached"></span>
-      </div>
-    </div>
-    <div class="modal-body" id="modal-body">
-      <div class="modal-loader">
-        <div class="modal-loader-bar"></div>
-        <span>Traduction en cours…</span>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script>
 // ── Config ──────────────────────────────────────────────────────────────────
-const API = 'https://veille-ia-production-8e0d.up.railway.app'; // ← remplacer par ton URL Railway
+const API = 'https://TON-SERVICE.railway.app'; // ← remplacer par ton URL Railway
 
 // ── State ───────────────────────────────────────────────────────────────────
 let allArticles = [];
@@ -432,21 +353,22 @@ function cardHTML(a) {
       ? `<p class="card-excerpt">${esc(a.excerpt)}</p>`
       : '';
 
-  const dataUrl = encodeURIComponent(a.url);
-  const dataTitle = esc(a.title).replace(/"/g, '&quot;');
   return `
-  <article class="card tag-${a.tag}" onclick="openModal('${dataUrl}','${a.tag}','${esc(a.source)}',this)" data-title="${dataTitle}" data-url="${esc(a.url)}">
+  <article class="card tag-${a.tag}">
     <div class="card-meta">
       <span class="tag-pill">${a.tag}</span>
       <span>${esc(a.source)}</span>
     </div>
-    <h2 class="card-title">${esc(a.title)}</h2>
+    <h2 class="card-title">
+      <a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.title)}</a>
+    </h2>
     ${contentBlock}
     <div class="card-footer">
       <span class="card-date">${date}</span>
-      <span class="card-link">
-        lire →
-      </span>
+      <a class="card-link" href="${esc(a.url)}" target="_blank" rel="noopener">
+        lire
+        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </a>
     </div>
   </article>`;
 }
@@ -506,79 +428,6 @@ document.getElementById('refresh-btn').addEventListener('click', async () => {
   await loadFeed(true);
   btn.classList.remove('spinning');
 });
-
-
-// ── Modal ────────────────────────────────────────────────────────────────────
-async function openModal(encodedUrl, tag, source, cardEl) {
-  const url = decodeURIComponent(encodedUrl);
-  const title = cardEl.dataset.title;
-
-  // Remplir header
-  const tagEl = document.getElementById('modal-tag');
-  tagEl.textContent = tag;
-  tagEl.className = 'modal-tag tag-pill';
-  // Appliquer couleur du tag
-  const tagColors = {news:'tag-news', tools:'tag-tools', deep:'tag-deep', video:'tag-video'};
-  tagEl.classList.add(tagColors[tag] || 'tag-news');
-
-  document.getElementById('modal-source').textContent = source;
-  document.getElementById('modal-title-text').textContent = title;
-  document.getElementById('modal-orig-link').href = url;
-  document.getElementById('modal-cached').textContent = '';
-  document.getElementById('modal-body').innerHTML = `
-    <div class="modal-loader">
-      <div class="modal-loader-bar"></div>
-      <span>Traduction en cours…</span>
-    </div>`;
-
-  // Ouvrir overlay
-  document.getElementById('modal-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-
-  // Appel API
-  try {
-    const res = await fetch(`${API}/api/article?url=${encodeURIComponent(url)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-
-    if (data.from_cache) {
-      document.getElementById('modal-cached').textContent = '⚡ depuis le cache';
-    }
-
-    // Formatter le texte (paragraphes)
-    const paragraphs = data.translation
-      .split(/\n{2,}/)
-      .map(p => p.trim())
-      .filter(Boolean)
-      .map(p => {
-        if (p.startsWith('- ') || p.startsWith('• ')) {
-          const items = p.split(/\n/).map(l => `<li>${esc(l.replace(/^[-•]\s*/, ''))}</li>`).join('');
-          return `<ul>${items}</ul>`;
-        }
-        return `<p>${esc(p)}</p>`;
-      })
-      .join('');
-
-    document.getElementById('modal-body').innerHTML = paragraphs;
-  } catch(e) {
-    document.getElementById('modal-body').innerHTML =
-      `<p style="color:var(--danger);font-family:var(--mono);font-size:12px;">
-        Impossible de traduire cet article.<br>
-        <a href="${esc(url)}" target="_blank" rel="noopener" style="color:var(--accent)">Lire l'original →</a>
-      </p>`;
-  }
-}
-
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-document.getElementById('modal-close').addEventListener('click', closeModal);
-document.getElementById('modal-overlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeModal();
-});
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 loadFeed();
