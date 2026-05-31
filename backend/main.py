@@ -109,6 +109,9 @@ async def summarize_groq(text: str, title: str, groq_key: str) -> str:
                 },
             )
             data = resp.json()
+            if "choices" not in data:
+                print(f"[groq error] réponse inattendue (status {resp.status_code}): {data}")
+                return ""
             return data["choices"][0]["message"]["content"].strip()
     except Exception as e:
         print(f"[groq error] {e}")
