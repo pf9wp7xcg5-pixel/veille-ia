@@ -233,6 +233,86 @@ main {
 .sk-line   { height: 11px; width: 100%; margin-bottom: 5px; }
 .sk-line2  { height: 11px; width: 65%; }
 
+/* ── Modal traduction ── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+  padding: 1.5rem;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  max-width: 680px; width: 100%;
+  max-height: 85vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.modal-header {
+  padding: 1.25rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.modal-meta {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 10px; color: var(--muted);
+}
+.modal-title {
+  font-size: 16px; font-weight: 500; line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+.modal-actions {
+  display: flex; align-items: center; gap: 10px; margin-top: 2px;
+}
+.modal-source-link {
+  font-family: var(--mono); font-size: 11px;
+  color: var(--accent); text-decoration: none;
+  display: flex; align-items: center; gap: 5px;
+  border: 1px solid var(--accent);
+  border-radius: 4px; padding: 4px 10px;
+  transition: all .15s;
+}
+.modal-source-link:hover { background: var(--accent); color: #0a0a0a; }
+.modal-source-link svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.modal-close {
+  margin-left: auto;
+  background: none; border: 1px solid var(--border2);
+  border-radius: 4px; color: var(--muted);
+  font-family: var(--mono); font-size: 11px;
+  padding: 4px 10px; cursor: pointer; transition: all .15s;
+}
+.modal-close:hover { border-color: var(--danger); color: var(--danger); }
+
+.modal-body {
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  font-size: 14px; line-height: 1.75; color: #ccc;
+}
+.modal-body p { margin-bottom: 1em; }
+.modal-loading {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--mono); font-size: 12px; color: var(--muted);
+  padding: 2rem 0;
+}
+.modal-loading-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.modal-loading-dot:nth-child(2) { animation-delay: .2s; }
+.modal-loading-dot:nth-child(3) { animation-delay: .4s; }
+@keyframes pulse { 0%,100%{opacity:.2} 50%{opacity:1} }
+.modal-error { font-family: var(--mono); font-size: 12px; color: var(--danger); }
+
+/* Rendre les cartes cliquables */
+.card { cursor: pointer; }
+
 /* ── Error banner ── */
 .error-banner {
   background: #1a0a0a; border: 1px solid #3a1a1a;
@@ -280,9 +360,34 @@ main {
 
 <main id="grid"></main>
 
+<!-- Modal traduction -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-meta" id="modal-meta"></div>
+      <div class="modal-title" id="modal-title"></div>
+      <div class="modal-actions">
+        <a class="modal-source-link" id="modal-source-link" href="#" target="_blank" rel="noopener">
+          lire l'article original
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+        <button class="modal-close" id="modal-close">✕ fermer</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <div class="modal-loading" id="modal-loading">
+        <div class="modal-loading-dot"></div>
+        <div class="modal-loading-dot"></div>
+        <div class="modal-loading-dot"></div>
+        <span>traduction en cours...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── Config ──────────────────────────────────────────────────────────────────
-const API = 'https://TON-SERVICE.railway.app'; // ← remplacer par ton URL Railway
+const API = 'https://veille-ia-production-8e0d.up.railway.app';
 
 // ── State ───────────────────────────────────────────────────────────────────
 let allArticles = [];
@@ -342,10 +447,10 @@ function render() {
     return;
   }
 
-  grid.innerHTML = articles.map(cardHTML).join('');
+  grid.innerHTML = articles.map((a, i) => cardHTML(a, i)).join('');
 }
 
-function cardHTML(a) {
+function cardHTML(a, idx) {
   const date = a.date ? relativeDate(a.date) : '';
   const contentBlock = a.summary
     ? `<p class="card-summary">${esc(a.summary)}</p>`
@@ -354,7 +459,7 @@ function cardHTML(a) {
       : '';
 
   return `
-  <article class="card tag-${a.tag}">
+  <article class="card tag-${a.tag}" data-idx="${idx}">
     <div class="card-meta">
       <span class="tag-pill">${a.tag}</span>
       <span>${esc(a.source)}</span>
@@ -427,6 +532,85 @@ document.getElementById('refresh-btn').addEventListener('click', async () => {
   btn.classList.add('spinning');
   await loadFeed(true);
   btn.classList.remove('spinning');
+});
+
+// ── Modal traduction ─────────────────────────────────────────────────────────
+function openModal(article) {
+  const overlay = document.getElementById('modal-overlay');
+  document.getElementById('modal-title').textContent = article.title;
+  document.getElementById('modal-meta').innerHTML =
+    `<span class="tag-pill" style="background:var(--surface);border:1px solid var(--border2);color:var(--muted)">${article.tag}</span>
+     <span>${esc(article.source)}</span>`;
+  document.getElementById('modal-source-link').href = article.url;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-loading" id="modal-loading">
+      <div class="modal-loading-dot"></div>
+      <div class="modal-loading-dot"></div>
+      <div class="modal-loading-dot"></div>
+      <span>traduction en cours...</span>
+    </div>`;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  fetchTranslation(article);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function fetchTranslation(article) {
+  try {
+    const params = new URLSearchParams({
+      url: article.url,
+      title: article.title,
+      excerpt: article.excerpt || article.summary || '',
+    });
+    const res = await fetch(`${API}/api/translate?${params}`);
+    const data = await res.json();
+    const body = document.getElementById('modal-body');
+    if (data.error || !data.translation) {
+      body.innerHTML = `<p class="modal-error">Erreur : ${esc(data.error || data.detail || 'Réponse inattendue du serveur')}</p>`;
+    } else {
+      const paragraphs = data.translation
+        .split(/\n+/)
+        .filter(p => p.trim())
+        .map(p => `<p>${esc(p)}</p>`)
+        .join('');
+      body.innerHTML = paragraphs || `<p class="modal-error">Traduction vide.</p>`;
+    }
+  } catch (e) {
+    document.getElementById('modal-body').innerHTML =
+      `<p class="modal-error">Impossible de joindre l'API : ${esc(e.message)}</p>`;
+  }
+}
+
+// Fermeture modal
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// Clic sur les cartes → ouvre le modal
+document.getElementById('grid').addEventListener('click', e => {
+  // Ne pas déclencher si clic sur un lien (le "lire l'article" existant)
+  if (e.target.closest('a')) return;
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const idx = parseInt(card.dataset.idx);
+  if (isNaN(idx)) return;
+  let articles = allArticles;
+  if (currentTag !== 'all') articles = articles.filter(a => a.tag === currentTag);
+  if (searchQ) {
+    const q = searchQ.toLowerCase();
+    articles = articles.filter(a =>
+      a.title.toLowerCase().includes(q) ||
+      (a.excerpt || '').toLowerCase().includes(q) ||
+      (a.summary || '').toLowerCase().includes(q)
+    );
+  }
+  if (articles[idx]) openModal(articles[idx]);
 });
 
 // ── Init ─────────────────────────────────────────────────────────────────────

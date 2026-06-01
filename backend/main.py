@@ -213,6 +213,65 @@ async def manual_refresh():
     return {"ok": True, "articles": len(_cache["articles"])}
 
 
+@app.get("/api/translate")
+async def translate_article(
+    url: str = Query(...),
+    title: str = Query(""),
+    excerpt: str = Query(""),
+):
+    if not GROQ_API_KEY:
+        return {"error": "GROQ_API_KEY non configurée"}
+
+    # Tente de récupérer le contenu complet de l'article
+    content = ""
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+            raw_html = resp.text
+            content = re.sub(r"<script[^>]*>.*?</script>", " ", raw_html, flags=re.DOTALL)
+            content = re.sub(r"<style[^>]*>.*?</style>", " ", content, flags=re.DOTALL)
+            content = re.sub(r"<[^>]+>", " ", content)
+            content = re.sub(r"\s+", " ", content).strip()
+            content = content[:4000]
+    except Exception as e:
+        print(f"[translate] fetch error: {e}")
+
+    # Fallback sur l'extrait si le fetch a échoué ou retourné peu de contenu
+    text = content if len(content) > len(excerpt) else excerpt
+
+    if not text.strip():
+        return {"error": "Impossible de récupérer le contenu de l'article"}
+
+    prompt = (
+        f"Titre : {title}\n\n{text}\n\n"
+        "Traduis et résume cet article en français de manière complète et détaillée. "
+        "Structure ta réponse avec des paragraphes clairs. "
+        "Commence directement par le contenu, sans introduction ni mention de traduction."
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {GROQ_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "llama-3.1-8b-instant",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 1024,
+                    "temperature": 0.3,
+                },
+            )
+            data = resp.json()
+            if "choices" not in data:
+                return {"error": "Erreur Groq", "detail": str(data)}
+            return {"translation": data["choices"][0]["message"]["content"].strip()}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "articles": len(_cache["articles"]), "cached_at": _cache["ts"]}

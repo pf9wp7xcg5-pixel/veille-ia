@@ -1,6 +1,6 @@
 # Veille IA
 
-Agrégateur de flux RSS IA avec résumés Groq (Llama 3).
+Agrégateur de flux RSS IA avec résumés et traductions complètes via Groq (Llama 3).
 
 ## Architecture
 
@@ -32,11 +32,20 @@ frontend/  → HTML/JS statique sur Amen
 
 2. Upload `index.html` sur ton hébergement Amen via FTP ou le gestionnaire de fichiers.
 
+## Fonctionnalités
+
+- **Agrégation RSS** : 10 sources IA (actualités, outils, recherche, vidéo/podcast)
+- **Résumés automatiques** : 2 phrases en français via Groq au chargement
+- **Traduction complète** : clic sur une carte → modal avec traduction intégrale de l'article via Groq + lien vers la source originale
+- **Recherche & filtres** par tag en temps réel
+- **Refresh automatique** chaque jour à 7h (heure de Nouméa)
+
 ## URLs API
 
 | Route | Description |
 |-------|-------------|
 | `GET /api/feed` | Articles (params: `tag`, `q`, `limit`) |
+| `GET /api/translate` | Traduction complète d'un article (params: `url`, `title`, `excerpt`) |
 | `GET /api/sources` | Liste des sources configurées |
 | `GET /api/refresh` | Force le rechargement des flux |
 | `GET /health` | Statut du service |
