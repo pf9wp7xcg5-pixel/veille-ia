@@ -32,6 +32,11 @@ SOURCES = [
     {"id": "fireship",   "name": "Fireship",              "tag": "video", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA"},
     {"id": "mattwolfe",  "name": "Matt Wolfe",            "tag": "video", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCfHnS-v7pFGLnxrKbyyMzYg"},
     {"id": "aibriefing", "name": "AI Daily Brief",        "tag": "video", "url": "https://feeds.buzzsprout.com/2126097.rss"},
+    # ── M365 / Copilot / Gouvernance IA ──
+    {"id": "m365blog",    "name": "Microsoft 365 Blog",   "tag": "tools", "url": "https://www.microsoft.com/en-us/microsoft-365/blog/feed/"},
+    {"id": "practical365","name": "Practical 365",        "tag": "tools", "url": "https://practical365.com/feed/"},
+    {"id": "msftcopilot", "name": "MS Copilot Blog",      "tag": "tools", "url": "https://techcommunity.microsoft.com/plugins/custom/microsoft/o365/custom-blog-rss?tid=4&board=MicrosoftCopilotBlog&limit=10"},
+    {"id": "aigovernance","name": "AI Governance (MIT)",  "tag": "deep",  "url": "https://thereader.mitpress.mit.edu/feed/"},
 ]
 
 # ── Cache ──────────────────────────────────────────────────────────────────────
