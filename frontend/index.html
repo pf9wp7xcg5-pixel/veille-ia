@@ -465,7 +465,7 @@ function cardHTML(a, idx) {
       <span>${esc(a.source)}</span>
     </div>
     <h2 class="card-title">
-      <a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.title)}</a>
+      <a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.title_fr || a.title)}</a>
     </h2>
     ${contentBlock}
     <div class="card-footer">
@@ -537,7 +537,7 @@ document.getElementById('refresh-btn').addEventListener('click', async () => {
 // ── Modal traduction ─────────────────────────────────────────────────────────
 function openModal(article) {
   const overlay = document.getElementById('modal-overlay');
-  document.getElementById('modal-title').textContent = article.title;
+  document.getElementById('modal-title').textContent = article.title_fr || article.title;
   document.getElementById('modal-meta').innerHTML =
     `<span class="tag-pill" style="background:var(--surface);border:1px solid var(--border2);color:var(--muted)">${article.tag}</span>
      <span>${esc(article.source)}</span>`;

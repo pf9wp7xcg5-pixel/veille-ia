@@ -90,13 +90,14 @@ async def fetch_feed(source: dict, client: httpx.AsyncClient) -> list[dict]:
         return []
 
 
-async def summarize_groq(text: str, title: str, groq_key: str) -> str:
+async def summarize_groq(text: str, title: str, groq_key: str) -> dict:
     if not groq_key or not text.strip():
-        return ""
+        return {"summary": "", "title_fr": ""}
     prompt = (
         f"Article : {title}\n\n{text}\n\n"
-        "Résume cet article en 2 phrases courtes en français. "
-        "Sois factuel et concis, sans introduction."
+        "Réponds uniquement avec deux lignes, sans rien d'autre :\n"
+        "TITRE: <traduction française du titre>\n"
+        "RESUME: <résumé en 2 phrases courtes en français, factuel et concis>"
     )
     try:
         async with httpx.AsyncClient(timeout=15) as client:
@@ -109,18 +110,25 @@ async def summarize_groq(text: str, title: str, groq_key: str) -> str:
                 json={
                     "model": "llama-3.1-8b-instant",
                     "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 120,
+                    "max_tokens": 150,
                     "temperature": 0.3,
                 },
             )
             data = resp.json()
             if "choices" not in data:
                 print(f"[groq error] réponse inattendue (status {resp.status_code}): {data}")
-                return ""
-            return data["choices"][0]["message"]["content"].strip()
+                return {"summary": "", "title_fr": ""}
+            content = data["choices"][0]["message"]["content"].strip()
+            title_fr, summary = "", ""
+            for line in content.splitlines():
+                if line.startswith("TITRE:"):
+                    title_fr = line[6:].strip()
+                elif line.startswith("RESUME:"):
+                    summary = line[7:].strip()
+            return {"summary": summary, "title_fr": title_fr}
     except Exception as e:
         print(f"[groq error] {e}")
-        return ""
+        return {"summary": "", "title_fr": ""}
 
 
 async def refresh_cache(groq_key: str = ""):
@@ -141,7 +149,9 @@ async def refresh_cache(groq_key: str = ""):
         async def safe_summarize(a):
             async with sem:
                 if a["excerpt"]:
-                    a["summary"] = await summarize_groq(a["excerpt"], a["title"], groq_key)
+                    result = await summarize_groq(a["excerpt"], a["title"], groq_key)
+                    a["summary"] = result["summary"]
+                    a["title_fr"] = result["title_fr"]
                 return a
 
         articles = await asyncio.gather(*[safe_summarize(a) for a in articles[:20]])
