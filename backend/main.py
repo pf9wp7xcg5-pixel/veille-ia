@@ -4,8 +4,11 @@ import asyncio
 import time
 import re
 import os
-from fastapi import FastAPI, Query
+import json
+from pathlib import Path
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -21,7 +24,7 @@ app.add_middleware(
 )
 
 # ── Sources RSS ────────────────────────────────────────────────────────────────
-SOURCES = [
+DEFAULT_SOURCES = [
     {"id": "tldr",       "name": "TLDR AI",              "tag": "news",  "url": "https://tldr.tech/ai/rss"},
     {"id": "rundown",    "name": "The Rundown AI",        "tag": "news",  "url": "https://www.therundown.ai/rss"},
     {"id": "bensbites",  "name": "Ben's Bites",           "tag": "news",  "url": "https://www.bensbites.com/feed"},
@@ -38,6 +41,21 @@ SOURCES = [
     {"id": "msftcopilot", "name": "MS Copilot Blog",      "tag": "tools", "url": "https://techcommunity.microsoft.com/plugins/custom/microsoft/o365/custom-blog-rss?tid=4&board=MicrosoftCopilotBlog&limit=10"},
     {"id": "aigovernance","name": "AI Governance (MIT)",  "tag": "deep",  "url": "https://thereader.mitpress.mit.edu/feed/"},
 ]
+
+SOURCES_FILE = Path(__file__).parent / "sources.json"
+
+def _load_sources() -> list[dict]:
+    if SOURCES_FILE.exists():
+        try:
+            return json.loads(SOURCES_FILE.read_text())
+        except Exception as e:
+            print(f"[sources] erreur lecture sources.json: {e}")
+    return list(DEFAULT_SOURCES)
+
+def _save_sources():
+    SOURCES_FILE.write_text(json.dumps(SOURCES, ensure_ascii=False, indent=2))
+
+SOURCES: list[dict] = _load_sources()
 
 # ── Cache ──────────────────────────────────────────────────────────────────────
 _cache: dict = {"articles": [], "ts": 0}
@@ -220,6 +238,36 @@ async def get_feed(
 @app.get("/api/sources")
 async def get_sources():
     return {"sources": SOURCES}
+
+
+class SourceIn(BaseModel):
+    name: str
+    tag: str   # news | tools | deep | video
+    url: str
+    id: str = ""
+
+
+@app.post("/api/sources")
+async def add_source(source: SourceIn):
+    global SOURCES
+    sid = source.id or re.sub(r"[^a-z0-9]", "", source.name.lower())[:16]
+    if any(s["id"] == sid for s in SOURCES):
+        raise HTTPException(status_code=409, detail=f"id '{sid}' déjà utilisé")
+    SOURCES.append({"id": sid, "name": source.name, "tag": source.tag, "url": source.url})
+    _save_sources()
+    asyncio.create_task(refresh_cache(GROQ_API_KEY))
+    return {"ok": True, "id": sid, "sources": SOURCES}
+
+
+@app.delete("/api/sources/{source_id}")
+async def remove_source(source_id: str):
+    global SOURCES
+    before = len(SOURCES)
+    SOURCES = [s for s in SOURCES if s["id"] != source_id]
+    if len(SOURCES) == before:
+        raise HTTPException(status_code=404, detail="source introuvable")
+    _save_sources()
+    return {"ok": True, "sources": SOURCES}
 
 
 @app.get("/api/refresh")

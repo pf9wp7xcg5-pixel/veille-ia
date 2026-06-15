@@ -326,6 +326,93 @@ main {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── Admin sources panel ── */
+.admin-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+  padding: 1.5rem;
+}
+.admin-overlay.open { display: flex; }
+.admin-panel {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  width: 100%; max-width: 640px;
+  max-height: 85vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.admin-header {
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.admin-header h3 {
+  font-family: var(--mono); font-size: 13px; font-weight: 700;
+  color: var(--accent); letter-spacing: 0.06em;
+}
+.admin-body { padding: 1.25rem 1.5rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 1.25rem; }
+.admin-sources-list { display: flex; flex-direction: column; gap: 6px; }
+.admin-source-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 12px;
+}
+.admin-source-row .src-name { flex: 1; color: var(--text); font-weight: 500; }
+.admin-source-row .src-tag {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  padding: 2px 6px; border-radius: 3px; text-transform: uppercase;
+}
+.src-tag-news  { background: #1a2a0a; color: var(--accent); }
+.src-tag-tools { background: #0a2a22; color: var(--accent2); }
+.src-tag-deep  { background: #1a0a2a; color: #c060f0; }
+.src-tag-video { background: #2a1a0a; color: #f09060; }
+.admin-source-row .src-url { font-family: var(--mono); font-size: 10px; color: var(--muted); flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.del-btn {
+  background: none; border: 1px solid transparent;
+  border-radius: 4px; color: var(--muted); font-size: 12px;
+  cursor: pointer; padding: 2px 7px; transition: all .15s; flex-shrink: 0;
+}
+.del-btn:hover { border-color: var(--danger); color: var(--danger); }
+.admin-add-form {
+  border-top: 1px solid var(--border);
+  padding-top: 1.1rem;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.admin-add-form h4 { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.05em; }
+.form-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.form-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
+.form-field label { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.form-field input, .form-field select {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  color: var(--text);
+  font-family: var(--mono); font-size: 12px;
+  padding: 6px 10px; outline: none;
+  transition: border-color .2s;
+}
+.form-field input:focus, .form-field select:focus { border-color: var(--accent); }
+.form-field input::placeholder { color: var(--muted); }
+.form-field select option { background: var(--surface); }
+.add-btn {
+  background: var(--accent); border: none; border-radius: 5px;
+  color: #0a0a0a; font-family: var(--mono); font-size: 12px;
+  font-weight: 700; padding: 8px 18px; cursor: pointer;
+  transition: opacity .15s; align-self: flex-end;
+}
+.add-btn:hover { opacity: 0.85; }
+.add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.admin-msg { font-family: var(--mono); font-size: 11px; min-height: 16px; }
+.admin-msg.ok  { color: var(--accent); }
+.admin-msg.err { color: var(--danger); }
 </style>
 </head>
 <body>
@@ -338,6 +425,13 @@ main {
   </div>
   <div class="header-right">
     <span class="cache-info" id="cache-info"></span>
+    <button class="refresh-btn" id="sources-btn" title="Gérer les sources">
+      <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+        <path d="M12 2v2m0 16v2M2 12h2m16 0h2"/>
+      </svg>
+      sources
+    </button>
     <button class="refresh-btn" id="refresh-btn" title="Rafraîchir les flux">
       <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>
@@ -359,6 +453,47 @@ main {
 </div>
 
 <main id="grid"></main>
+
+<!-- Panel admin sources -->
+<div class="admin-overlay" id="admin-overlay">
+  <div class="admin-panel">
+    <div class="admin-header">
+      <h3>SOURCES RSS</h3>
+      <button class="modal-close" id="admin-close">✕ fermer</button>
+    </div>
+    <div class="admin-body">
+      <div class="admin-sources-list" id="admin-sources-list">
+        <div style="font-family:var(--mono);font-size:12px;color:var(--muted)">Chargement…</div>
+      </div>
+      <div class="admin-add-form">
+        <h4>AJOUTER UNE SOURCE</h4>
+        <div class="form-row">
+          <div class="form-field" style="flex:2">
+            <label>Nom</label>
+            <input type="text" id="add-name" placeholder="ex: The Decoder">
+          </div>
+          <div class="form-field" style="flex:1;min-width:110px">
+            <label>Catégorie</label>
+            <select id="add-tag">
+              <option value="news">actualités</option>
+              <option value="tools">outils</option>
+              <option value="deep">recherche</option>
+              <option value="video">vidéo / podcast</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-field">
+          <label>URL du flux RSS</label>
+          <input type="url" id="add-url" placeholder="https://…/rss">
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="add-btn" id="add-btn">+ Ajouter</button>
+          <span class="admin-msg" id="admin-msg"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Modal traduction -->
 <div class="modal-overlay" id="modal-overlay">
@@ -413,7 +548,7 @@ async function loadFeed(forceRefresh = false) {
     if (data.cached_at) {
       const d = new Date(data.cached_at);
       document.getElementById('cache-info').textContent =
-        'màj ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+        'màj ' + d.toLocaleDateString('fr-FR', {day:'numeric', month:'short'}) + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
     }
     render();
   } catch (e) {
@@ -611,6 +746,96 @@ document.getElementById('grid').addEventListener('click', e => {
     );
   }
   if (articles[idx]) openModal(articles[idx]);
+});
+
+// ── Admin sources ─────────────────────────────────────────────────────────────
+const TAG_LABELS = { news: 'actualités', tools: 'outils', deep: 'recherche', video: 'vidéo' };
+
+async function openAdmin() {
+  document.getElementById('admin-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  await refreshAdminList();
+}
+
+function closeAdmin() {
+  document.getElementById('admin-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  document.getElementById('admin-msg').textContent = '';
+  document.getElementById('admin-msg').className = 'admin-msg';
+}
+
+async function refreshAdminList() {
+  const list = document.getElementById('admin-sources-list');
+  try {
+    const res = await fetch(`${API}/api/sources`);
+    const data = await res.json();
+    list.innerHTML = data.sources.map(s => `
+      <div class="admin-source-row">
+        <span class="src-name">${esc(s.name)}</span>
+        <span class="src-tag src-tag-${s.tag}">${TAG_LABELS[s.tag] || s.tag}</span>
+        <span class="src-url" title="${esc(s.url)}">${esc(s.url)}</span>
+        <button class="del-btn" data-id="${esc(s.id)}">✕</button>
+      </div>`).join('');
+    list.querySelectorAll('.del-btn').forEach(btn => {
+      btn.addEventListener('click', () => deleteSource(btn.dataset.id, btn.closest('.admin-source-row')));
+    });
+  } catch (e) {
+    list.innerHTML = `<div style="font-family:var(--mono);font-size:12px;color:var(--danger)">Erreur : ${esc(e.message)}</div>`;
+  }
+}
+
+async function deleteSource(id, row) {
+  row.style.opacity = '0.4';
+  try {
+    const res = await fetch(`${API}/api/sources/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error((await res.json()).detail);
+    row.remove();
+    setAdminMsg('Source supprimée.', 'ok');
+    loadFeed();
+  } catch (e) {
+    row.style.opacity = '1';
+    setAdminMsg('Erreur : ' + e.message, 'err');
+  }
+}
+
+function setAdminMsg(text, type) {
+  const el = document.getElementById('admin-msg');
+  el.textContent = text;
+  el.className = 'admin-msg ' + type;
+  setTimeout(() => { el.textContent = ''; el.className = 'admin-msg'; }, 4000);
+}
+
+document.getElementById('add-btn').addEventListener('click', async () => {
+  const name = document.getElementById('add-name').value.trim();
+  const tag  = document.getElementById('add-tag').value;
+  const url  = document.getElementById('add-url').value.trim();
+  if (!name || !url) { setAdminMsg('Nom et URL requis.', 'err'); return; }
+  const btn = document.getElementById('add-btn');
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const res = await fetch(`${API}/api/sources`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, tag, url }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Erreur');
+    document.getElementById('add-name').value = '';
+    document.getElementById('add-url').value  = '';
+    setAdminMsg(`"${name}" ajoutée — refresh en cours…`, 'ok');
+    await refreshAdminList();
+    loadFeed();
+  } catch (e) {
+    setAdminMsg('Erreur : ' + e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '+ Ajouter';
+  }
+});
+
+document.getElementById('sources-btn').addEventListener('click', openAdmin);
+document.getElementById('admin-close').addEventListener('click', closeAdmin);
+document.getElementById('admin-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('admin-overlay')) closeAdmin();
 });
 
 // ── Init ─────────────────────────────────────────────────────────────────────
