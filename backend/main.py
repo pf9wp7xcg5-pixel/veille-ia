@@ -107,12 +107,23 @@ async def fetch_feed(source: dict, client: httpx.AsyncClient) -> list[dict]:
 async def summarize_groq(text: str, title: str, groq_key: str) -> dict:
     if not groq_key or not text.strip():
         return {"summary": "", "title_fr": ""}
-    prompt = (
-        f"Article : {title}\n\n{text}\n\n"
-        "Réponds uniquement avec deux lignes, sans rien d'autre :\n"
-        "TITRE: <traduction française du titre>\n"
-        "RESUME: <résumé en 2 phrases courtes en français, factuel et concis>"
-    )
+    # Prompt adapté : si on n'a que le titre, on demande une description probable
+    title_only = text.strip() == title.strip()
+    if title_only:
+        prompt = (
+            f"Traduis ce titre en français et propose une description probable en 2 phrases.\n"
+            f"Titre : {title}\n\n"
+            "Réponds UNIQUEMENT avec ces deux lignes (rien d'autre) :\n"
+            "TITRE: <traduction française du titre>\n"
+            "RESUME: <description probable en 2 phrases courtes en français>"
+        )
+    else:
+        prompt = (
+            f"Article : {title}\n\n{text}\n\n"
+            "Réponds UNIQUEMENT avec ces deux lignes (rien d'autre) :\n"
+            "TITRE: <traduction française du titre>\n"
+            "RESUME: <résumé en 2 phrases courtes en français, factuel et concis>"
+        )
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             resp = await client.post(
@@ -133,12 +144,11 @@ async def summarize_groq(text: str, title: str, groq_key: str) -> dict:
                 print(f"[groq error] réponse inattendue (status {resp.status_code}): {data}")
                 return {"summary": "", "title_fr": ""}
             content = data["choices"][0]["message"]["content"].strip()
-            title_fr, summary = "", ""
-            for line in content.splitlines():
-                if line.startswith("TITRE:"):
-                    title_fr = line[6:].strip()
-                elif line.startswith("RESUME:"):
-                    summary = line[7:].strip()
+            # Parsing robuste : regex insensible à la casse et aux espaces autour de ":"
+            titre_m = re.search(r'^TITRE\s*:\s*(.+)$', content, re.IGNORECASE | re.MULTILINE)
+            resume_m = re.search(r'^RESUME\s*:\s*(.+)$', content, re.IGNORECASE | re.MULTILINE)
+            title_fr = titre_m.group(1).strip() if titre_m else ""
+            summary   = resume_m.group(1).strip() if resume_m else ""
             return {"summary": summary, "title_fr": title_fr}
     except Exception as e:
         print(f"[groq error] {e}")
@@ -162,8 +172,12 @@ async def refresh_cache(groq_key: str = ""):
 
         async def safe_summarize(a):
             async with sem:
-                # Utilise l'excerpt si dispo, sinon le titre (pour les newsletters sans extrait)
-                text = a["excerpt"] or a["title"]
+                excerpt = a["excerpt"]
+                # Ignorer les excerpts promo type "PLUS: ..." ou trop courts (newsletters)
+                if excerpt and (re.match(r'^\s*(PLUS|ALSO|PS|P\.S\.)\s*:', excerpt, re.I) or len(excerpt.strip()) < 40):
+                    excerpt = ""
+                # Fallback sur le titre si pas d'extrait utile
+                text = excerpt or a["title"]
                 if text:
                     result = await summarize_groq(text, a["title"], groq_key)
                     a["summary"] = result["summary"]
