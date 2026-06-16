@@ -1,0 +1,18 @@
+[
+  {"id": "tldr",        "name": "TLDR AI",               "tag": "news",  "url": "https://tldr.tech/api/rss/ai"},
+  {"id": "rundown",     "name": "The Rundown AI",         "tag": "news",  "url": "https://rss.beehiiv.com/feeds/2R3C6Bt5wj.xml"},
+  {"id": "bensbites",   "name": "Ben's Bites",            "tag": "news",  "url": "https://www.bensbites.com/feed"},
+  {"id": "superhuman",  "name": "Superhuman AI",          "tag": "news",  "url": "https://www.superhuman.ai/rss"},
+  {"id": "aithere",     "name": "There's An AI For That", "tag": "tools", "url": "https://theresanaiforthat.com/rss"},
+  {"id": "hwpapers",    "name": "HuggingFace",            "tag": "deep",  "url": "https://huggingface.co/blog/feed.xml"},
+  {"id": "importai",    "name": "Import AI",              "tag": "deep",  "url": "https://importai.substack.com/feed"},
+  {"id": "fireship",    "name": "Fireship",               "tag": "video", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA"},
+  {"id": "mattwolfe",   "name": "Matt Wolfe",             "tag": "video", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCfHnS-v7pFGLnxrKbyyMzYg"},
+  {"id": "aibriefing",  "name": "AI Daily Brief",         "tag": "video", "url": "https://feeds.buzzsprout.com/2126097.rss"},
+  {"id": "m365blog",    "name": "Microsoft 365 Blog",     "tag": "tools", "url": "https://www.microsoft.com/en-us/microsoft-365/blog/feed/"},
+  {"id": "practical365","name": "Practical 365",          "tag": "tools", "url": "https://practical365.com/feed/"},
+  {"id": "msftcopilot", "name": "MS Copilot Blog",        "tag": "tools", "url": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=Microsoft365CopilotBlog"},
+  {"id": "aigovernance","name": "AI Governance (MIT)",    "tag": "deep",  "url": "https://thereader.mitpress.mit.edu/feed/"},
+  {"id": "theneuron",      "name": "The Neuron",              "tag": "news",  "url": "https://www.theneuron.ai/feed"},
+  {"id": "pplxpodcast",   "name": "Perplexity – Discover Daily", "tag": "video", "url": "https://rss.buzzsprout.com/2302487.rss"}
+]
