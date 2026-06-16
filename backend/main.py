@@ -6,9 +6,8 @@ import re
 import os
 import json
 from pathlib import Path
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -19,7 +18,7 @@ app = FastAPI(title="Veille IA API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET", "POST", "DELETE"],
+    allow_methods=["GET"],
     allow_headers=["*"],
 )
 
@@ -51,9 +50,6 @@ def _load_sources() -> list[dict]:
         except Exception as e:
             print(f"[sources] erreur lecture sources.json: {e}")
     return list(DEFAULT_SOURCES)
-
-def _save_sources():
-    SOURCES_FILE.write_text(json.dumps(SOURCES, ensure_ascii=False, indent=2))
 
 SOURCES: list[dict] = _load_sources()
 
@@ -160,20 +156,24 @@ async def refresh_cache(groq_key: str = ""):
 
     articles.sort(key=lambda a: a["date"], reverse=True)
 
-    # Résumés Groq (seulement les 20 premiers pour limiter les appels)
+    # Résumés Groq (seulement les 30 premiers pour limiter les appels)
     if groq_key:
         sem = asyncio.Semaphore(3)
 
         async def safe_summarize(a):
             async with sem:
-                if a["excerpt"]:
-                    result = await summarize_groq(a["excerpt"], a["title"], groq_key)
+                # Utilise l'excerpt si dispo, sinon le titre (pour les newsletters sans extrait)
+                text = a["excerpt"] or a["title"]
+                if text:
+                    result = await summarize_groq(text, a["title"], groq_key)
                     a["summary"] = result["summary"]
                     a["title_fr"] = result["title_fr"]
                 return a
 
-        articles = await asyncio.gather(*[safe_summarize(a) for a in articles[:20]])
-        articles = list(articles) + [a for a in articles[20:]]
+        first_batch = articles[:30]
+        rest = articles[30:]  # préserver AVANT le gather (articles sera réassigné)
+        summarized = await asyncio.gather(*[safe_summarize(a) for a in first_batch])
+        articles = list(summarized) + rest
 
     _cache["articles"] = articles
     _cache["ts"] = time.time()
@@ -239,35 +239,6 @@ async def get_feed(
 async def get_sources():
     return {"sources": SOURCES}
 
-
-class SourceIn(BaseModel):
-    name: str
-    tag: str   # news | tools | deep | video
-    url: str
-    id: str = ""
-
-
-@app.post("/api/sources")
-async def add_source(source: SourceIn):
-    global SOURCES
-    sid = source.id or re.sub(r"[^a-z0-9]", "", source.name.lower())[:16]
-    if any(s["id"] == sid for s in SOURCES):
-        raise HTTPException(status_code=409, detail=f"id '{sid}' déjà utilisé")
-    SOURCES.append({"id": sid, "name": source.name, "tag": source.tag, "url": source.url})
-    _save_sources()
-    asyncio.create_task(refresh_cache(GROQ_API_KEY))
-    return {"ok": True, "id": sid, "sources": SOURCES}
-
-
-@app.delete("/api/sources/{source_id}")
-async def remove_source(source_id: str):
-    global SOURCES
-    before = len(SOURCES)
-    SOURCES = [s for s in SOURCES if s["id"] != source_id]
-    if len(SOURCES) == before:
-        raise HTTPException(status_code=404, detail="source introuvable")
-    _save_sources()
-    return {"ok": True, "sources": SOURCES}
 
 
 @app.get("/api/refresh")
