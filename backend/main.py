@@ -82,6 +82,7 @@ async def fetch_feed(source: dict, client: httpx.AsyncClient) -> list[dict]:
         print(f"[feed error] {source['name']}: {e}")
         return []
 
+import re as _re  # déjà importé plus haut, ok si présent une seule fois
 
 async def summarize_groq(text: str, title: str, groq_key: str, max_retries: int = 3) -> dict:
     if not groq_key or not text.strip():
