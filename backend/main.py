@@ -83,10 +83,9 @@ async def fetch_feed(source: dict, client: httpx.AsyncClient) -> list[dict]:
         return []
 
 
-async def summarize_groq(text: str, title: str, groq_key: str) -> dict:
+async def summarize_groq(text: str, title: str, groq_key: str, max_retries: int = 3) -> dict:
     if not groq_key or not text.strip():
         return {"summary": "", "title_fr": ""}
-    # Prompt adapté : si on n'a que le titre, on demande une description probable
     title_only = text.strip() == title.strip()
     if title_only:
         prompt = (
@@ -103,35 +102,50 @@ async def summarize_groq(text: str, title: str, groq_key: str) -> dict:
             "TITRE: <traduction française du titre>\n"
             "RESUME: <résumé en 2 phrases courtes en français, factuel et concis>"
         )
-    try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {groq_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": "llama-3.1-8b-instant",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 150,
-                    "temperature": 0.3,
-                },
-            )
-            data = resp.json()
-            if "choices" not in data:
-                print(f"[groq error] réponse inattendue (status {resp.status_code}): {data}")
-                return {"summary": "", "title_fr": ""}
-            content = data["choices"][0]["message"]["content"].strip()
-            # Parsing robuste : regex insensible à la casse et aux espaces autour de ":"
-            titre_m = re.search(r'^TITRE\s*:\s*(.+)$', content, re.IGNORECASE | re.MULTILINE)
-            resume_m = re.search(r'^RESUME\s*:\s*(.+)$', content, re.IGNORECASE | re.MULTILINE)
-            title_fr = titre_m.group(1).strip() if titre_m else ""
-            summary   = resume_m.group(1).strip() if resume_m else ""
-            return {"summary": summary, "title_fr": title_fr}
-    except Exception as e:
-        print(f"[groq error] {e}")
-        return {"summary": "", "title_fr": ""}
+
+    for attempt in range(max_retries):
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {groq_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": "llama-3.1-8b-instant",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "max_tokens": 150,
+                        "temperature": 0.3,
+                    },
+                )
+                data = resp.json()
+
+                if resp.status_code == 429:
+                    # Groq renvoie le délai d'attente dans le message d'erreur
+                    msg = data.get("error", {}).get("message", "")
+                    m = _re.search(r"try again in ([\d.]+)s", msg)
+                    wait_s = float(m.group(1)) + 0.3 if m else 2.0
+                    print(f"[groq] 429, retry dans {wait_s:.1f}s (tentative {attempt+1}/{max_retries})")
+                    await asyncio.sleep(wait_s)
+                    continue
+
+                if "choices" not in data:
+                    print(f"[groq error] réponse inattendue (status {resp.status_code}): {data}")
+                    return {"summary": "", "title_fr": ""}
+
+                content = data["choices"][0]["message"]["content"].strip()
+                titre_m = _re.search(r'^TITRE\s*:\s*(.+)$', content, _re.IGNORECASE | _re.MULTILINE)
+                resume_m = _re.search(r'^RESUME\s*:\s*(.+)$', content, _re.IGNORECASE | _re.MULTILINE)
+                return {
+                    "summary": resume_m.group(1).strip() if resume_m else "",
+                    "title_fr": titre_m.group(1).strip() if titre_m else "",
+                }
+        except Exception as e:
+            print(f"[groq error] {e}")
+            return {"summary": "", "title_fr": ""}
+
+    return {"summary": "", "title_fr": ""}
 
 
 async def refresh_cache(groq_key: str = ""):
@@ -147,20 +161,19 @@ async def refresh_cache(groq_key: str = ""):
 
     # Résumés Groq (seulement les 30 premiers pour limiter les appels)
     if groq_key:
-        sem = asyncio.Semaphore(3)
+        sem = asyncio.Semaphore(1)   # au lieu de 3
 
         async def safe_summarize(a):
             async with sem:
                 excerpt = a["excerpt"]
-                # Ignorer les excerpts promo type "PLUS: ..." ou trop courts (newsletters)
                 if excerpt and (re.match(r'^\s*(PLUS|ALSO|PS|P\.S\.)\s*:', excerpt, re.I) or len(excerpt.strip()) < 40):
                     excerpt = ""
-                # Fallback sur le titre si pas d'extrait utile
                 text = excerpt or a["title"]
                 if text:
                     result = await summarize_groq(text, a["title"], groq_key)
                     a["summary"] = result["summary"]
                     a["title_fr"] = result["title_fr"]
+                await asyncio.sleep(0.4)   # espace les appels pour rester sous le TPM
                 return a
 
         first_batch = articles[:30]
