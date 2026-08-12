@@ -22,34 +22,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Sources RSS ────────────────────────────────────────────────────────────────
-DEFAULT_SOURCES = [
-    {"id": "tldr",       "name": "TLDR AI",              "tag": "news",  "url": "https://tldr.tech/ai/rss"},
-    {"id": "rundown",    "name": "The Rundown AI",        "tag": "news",  "url": "https://www.therundown.ai/rss"},
-    {"id": "bensbites",  "name": "Ben's Bites",           "tag": "news",  "url": "https://www.bensbites.com/feed"},
-    {"id": "superhuman", "name": "Superhuman AI",         "tag": "news",  "url": "https://www.superhuman.ai/rss"},
-    {"id": "aithere",    "name": "There's An AI For That","tag": "tools", "url": "https://theresanaiforthat.com/rss"},
-    {"id": "hwpapers",   "name": "HuggingFace Papers",    "tag": "deep",  "url": "https://huggingface.co/papers/rss"},
-    {"id": "importai",   "name": "Import AI",             "tag": "deep",  "url": "https://importai.substack.com/feed"},
-    {"id": "fireship",   "name": "Fireship",              "tag": "video", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA"},
-    {"id": "mattwolfe",  "name": "Matt Wolfe",            "tag": "video", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCfHnS-v7pFGLnxrKbyyMzYg"},
-    {"id": "aibriefing", "name": "AI Daily Brief",        "tag": "video", "url": "https://feeds.buzzsprout.com/2126097.rss"},
-    # ── M365 / Copilot / Gouvernance IA ──
-    {"id": "m365blog",    "name": "Microsoft 365 Blog",   "tag": "tools", "url": "https://www.microsoft.com/en-us/microsoft-365/blog/feed/"},
-    {"id": "practical365","name": "Practical 365",        "tag": "tools", "url": "https://practical365.com/feed/"},
-    {"id": "msftcopilot", "name": "MS Copilot Blog",      "tag": "tools", "url": "https://techcommunity.microsoft.com/plugins/custom/microsoft/o365/custom-blog-rss?tid=4&board=MicrosoftCopilotBlog&limit=10"},
-    {"id": "aigovernance","name": "AI Governance (MIT)",  "tag": "deep",  "url": "https://thereader.mitpress.mit.edu/feed/"},
-]
-
 SOURCES_FILE = Path(__file__).parent / "sources.json"
 
 def _load_sources() -> list[dict]:
-    if SOURCES_FILE.exists():
-        try:
-            return json.loads(SOURCES_FILE.read_text())
-        except Exception as e:
-            print(f"[sources] erreur lecture sources.json: {e}")
-    return list(DEFAULT_SOURCES)
+    try:
+        return json.loads(SOURCES_FILE.read_text())
+    except Exception as e:
+        print(f"[sources] erreur lecture sources.json: {e}")
 
 SOURCES: list[dict] = _load_sources()
 
