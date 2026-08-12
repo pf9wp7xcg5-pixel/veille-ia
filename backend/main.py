@@ -220,9 +220,8 @@ async def get_feed(
     tag: Optional[str] = Query(None),
     q:   Optional[str] = Query(None),
     limit: int = Query(50, le=200),
+    min_per_source: int = Query(2, le=10),
 ):
-    # Refresh si cache expiré
-
     articles = _cache["articles"]
 
     if tag and tag != "all":
@@ -235,8 +234,34 @@ async def get_feed(
             if q_lower in a["title"].lower() or q_lower in (a["excerpt"] or "").lower()
         ]
 
+    # Garantir une place minimale à chaque source avant de tronquer par date globale
+    selected = []
+    selected_ids = set()
+
+    by_source: dict[str, list[dict]] = {}
+    for a in articles:  # déjà trié par date décroissante
+        by_source.setdefault(a["source"], []).append(a)
+
+    for source_articles in by_source.values():
+        for a in source_articles[:min_per_source]:
+            if a["id"] not in selected_ids:
+                selected.append(a)
+                selected_ids.add(a["id"])
+
+    # Compléter avec le reste par ordre chronologique global jusqu'à la limite
+    for a in articles:
+        if len(selected) >= limit:
+            break
+        if a["id"] not in selected_ids:
+            selected.append(a)
+            selected_ids.add(a["id"])
+
+    # Re-trier le résultat final pour un affichage cohérent
+    selected.sort(key=lambda a: a["date"], reverse=True)
+    selected = selected[:limit]
+
     return {
-        "articles": articles[:limit],
+        "articles": selected,
         "total": len(articles),
         "cached_at": datetime.fromtimestamp(_cache["ts"], tz=timezone.utc).isoformat() if _cache["ts"] else None,
     }
