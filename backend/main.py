@@ -114,7 +114,7 @@ async def summarize_groq(text: str, title: str, groq_key: str, max_retries: int 
                         "Content-Type": "application/json",
                     },
                     json={
-                        "model": "llama-3.1-8b-instant",
+                        "model": "openai/gpt-oss-20b", 
                         "messages": [{"role": "user", "content": prompt}],
                         "max_tokens": 150,
                         "temperature": 0.3,
@@ -324,7 +324,7 @@ async def translate_article(
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": "llama-3.1-8b-instant",
+                    "model": "openai/gpt-oss-20b",   # remplace "llama-3.1-8b-instant"
                     "messages": [{"role": "user", "content": prompt}],
                     "max_tokens": 1024,
                     "temperature": 0.3,
