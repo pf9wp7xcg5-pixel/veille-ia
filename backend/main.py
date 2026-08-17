@@ -197,9 +197,8 @@ scheduler = AsyncIOScheduler()
 
 @app.on_event("startup")
 async def startup():
-    # Chargement initial au démarrage
-    await refresh_cache(GROQ_API_KEY)
-    # Scheduler : tous les jours à 20h UTC = 7h heure de Nouméa (GMT+11)
+    # Lancer le refresh en arrière-plan sans bloquer le démarrage
+    asyncio.create_task(refresh_cache(GROQ_API_KEY))
     scheduler.add_job(
         refresh_cache,
         CronTrigger(hour=20, minute=0, timezone="UTC"),
