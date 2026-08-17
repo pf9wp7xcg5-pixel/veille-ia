@@ -174,7 +174,8 @@ async def refresh_cache(groq_key: str = ""):
                     result = await summarize_groq(text, a["title"], groq_key)
                     a["summary"] = result["summary"]
                     a["title_fr"] = result["title_fr"]
-                await asyncio.sleep(1)   # espace les appels pour rester sous le TPM
+                    print(f"[summarize] '{a['title'][:40]}' -> title_fr={bool(result['title_fr'])}, summary={bool(result['summary'])}")
+                await asyncio.sleep(1)
                 return a
 
         first_batch = articles[:30]
