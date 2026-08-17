@@ -17,5 +17,6 @@
   {"id": "msftcopilot",  "name": "MS Copilot Blog",             "tag": "tools", "url": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=Microsoft365CopilotBlog"},
   {"id": "thedecoder",   "name": "The Decoder",                 "tag": "deep",  "url": "https://the-decoder.com/feed/"},
   {"id": "nikkichapple", "name": "Nikki Chapple - AI Governance","tag": "deep",  "url": "https://nikkichapple.com/feed/"},
-  {"id": "sharepointmaven","name": "SharePoint Maven",           "tag": "tools", "url": "https://sharepointmaven.com/feed"}
+  {"id": "sharepointmaven","name": "SharePoint Maven",           "tag": "tools", "url": "https://sharepointmaven.com/feed"},
+  {"id": "kbworks",       "name": "KbWorks",                     "tag": "tools", "url": "https://kbworks.eu/feed/"}
 ]
