@@ -1,6 +1,6 @@
 # Veille IA
 
-Agrégateur de flux RSS IA avec résumés et traductions complètes via Groq (Llama 3).
+Agrégateur de flux RSS IA avec résumés et traductions complètes via Groq (openai/gpt-oss-20b).
 
 ## Architecture
 
