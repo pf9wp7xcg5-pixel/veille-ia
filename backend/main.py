@@ -135,6 +135,15 @@ async def summarize_groq(text: str, title: str, groq_key: str, max_retries: int 
                     print(f"[groq error] réponse inattendue (status {resp.status_code}): {data}")
                     return {"summary": "", "title_fr": ""}
 
+                content = data["choices"][0]["message"]["content"].strip()
+                titre_m = _re.search(r'^TITRE\s*:\s*(.+)$', content, _re.IGNORECASE | _re.MULTILINE)
+                resume_m = _re.search(r'^RESUME\s*:\s*(.+)$', content, _re.IGNORECASE | _re.MULTILINE)
+                title_fr = titre_m.group(1).strip() if titre_m else ""
+                summary  = resume_m.group(1).strip() if resume_m else ""
+
+                if not title_fr and not summary:
+                    print(f"[groq parse fail] contenu brut reçu : {content!r}")
+
                 return {"summary": summary, "title_fr": title_fr}
         except Exception as e:
             print(f"[groq error] {e}")
@@ -169,7 +178,7 @@ async def refresh_cache(groq_key: str = ""):
                     a["summary"] = result["summary"]
                     a["title_fr"] = result["title_fr"]
                     print(f"[summarize] '{a['title'][:40]}' -> title_fr={bool(result['title_fr'])}, summary={bool(result['summary'])}")
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.6)
                 return a
 
         first_batch = articles[:30]
