@@ -177,7 +177,7 @@ async def refresh_cache(groq_key: str = ""):
                     result = await summarize_groq(text, a["title"], groq_key)
                     a["summary"] = result["summary"]
                     a["title_fr"] = result["title_fr"]
-                    print(f"[summarize] '{a['title'][:40]}' -> title_fr={bool(result['title_fr'])}, summary={bool(result['summary'])}")
+                    #print(f"[summarize] '{a['title'][:40]}' -> title_fr={bool(result['title_fr'])}, summary={bool(result['summary'])}")
                 await asyncio.sleep(0.6)
                 return a
 
