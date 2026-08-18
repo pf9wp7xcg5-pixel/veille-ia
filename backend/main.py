@@ -146,7 +146,16 @@ async def summarize_groq(text: str, title: str, groq_key: str, max_retries: int 
             print(f"[groq error] {e}")
             return {"summary": "", "title_fr": ""}
 
-    return {"summary": "", "title_fr": ""}
+    content = data["choices"][0]["message"]["content"].strip()
+    titre_m = _re.search(r'^TITRE\s*:\s*(.+)$', content, _re.IGNORECASE | _re.MULTILINE)
+    resume_m = _re.search(r'^RESUME\s*:\s*(.+)$', content, _re.IGNORECASE | _re.MULTILINE)
+    title_fr = titre_m.group(1).strip() if titre_m else ""
+    summary  = resume_m.group(1).strip() if resume_m else ""
+
+    if not title_fr and not summary:
+        print(f"[groq parse fail] contenu brut reçu : {content!r}")
+
+    return {"summary": summary, "title_fr": title_fr}
 
 
 async def refresh_cache(groq_key: str = ""):
